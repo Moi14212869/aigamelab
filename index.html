@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AIGameLab — Portail de jeux en ligne</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg: #0b0a14;
+  --bg-alt: #14121f;
+  --panel: #1c1930;
+  --panel-border: #322c4d;
+  --magenta: #ff2e7e;
+  --cyan: #38e8e1;
+  --amber: #ffc145;
+  --text: #f1eefb;
+  --text-dim: #8b87a6;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Space Grotesk', sans-serif;
+  min-height: 100%;
+}
+
+body {
+  position: relative;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.015) 0px,
+    rgba(255, 255, 255, 0.015) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  z-index: 999;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+
+.page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 32px 80px;
+}
+
+header.hero {
+  padding: 56px 0 40px;
+  text-align: center;
+  position: relative;
+}
+
+.brand-eyebrow {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.35em;
+  color: var(--cyan);
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+
+h1.brand-title {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 800;
+  font-size: clamp(40px, 7vw, 76px);
+  letter-spacing: 0.03em;
+  margin: 0;
+  line-height: 1;
+  background: linear-gradient(120deg, var(--magenta) 0%, var(--amber) 50%, var(--cyan) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 40px rgba(255, 46, 126, 0.25);
+}
+
+.brand-sub {
+  margin-top: 14px;
+  color: var(--text-dim);
+  font-size: 15px;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.search-console {
+  margin: 40px auto 0;
+  max-width: 620px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 18px 20px;
+  position: relative;
+  box-shadow: 0 0 0 1px rgba(56, 232, 225, 0.05), 0 20px 60px -20px rgba(255, 46, 126, 0.25);
+}
+
+.search-console::before {
+  content: "";
+  position: absolute;
+  top: -1px; left: -1px; right: -1px;
+  height: 3px;
+  border-radius: 10px 10px 0 0;
+  background: linear-gradient(90deg, var(--magenta), var(--amber), var(--cyan));
+}
+
+.search-console-topline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.search-console-topline .dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--cyan);
+  margin-right: 6px;
+  box-shadow: 0 0 8px var(--cyan);
+  animation: blink 1.6s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+.search-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-alt);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  padding: 12px 16px;
+}
+
+.search-row svg {
+  flex-shrink: 0;
+  color: var(--cyan);
+}
+
+#search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+}
+
+#search-input::placeholder {
+  color: var(--text-dim);
+}
+
+.search-count {
+  margin-top: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: right;
+  letter-spacing: 0.05em;
+}
+
+.search-count strong {
+  color: var(--amber);
+}
+
+.section-label {
+  margin: 64px 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.section-label::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--panel-border);
+}
+
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 22px;
+}
+
+.game-card {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  overflow: hidden;
+  text-decoration: none;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.game-card:hover,
+.game-card:focus-visible {
+  transform: translateY(-4px);
+  border-color: var(--cyan);
+  box-shadow: 0 16px 40px -18px rgba(56, 232, 225, 0.45);
+}
+
+.game-card:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
+.game-card-media {
+  aspect-ratio: 4 / 3;
+  background: var(--bg-alt);
+  overflow: hidden;
+}
+
+.game-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.25s ease;
+}
+
+.game-card:hover .game-card-media img {
+  transform: scale(1.06);
+}
+
+.game-card-body {
+  padding: 14px 16px 16px;
+  border-top: 1px solid var(--panel-border);
+}
+
+.game-card-name {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.03em;
+  margin: 0 0 4px;
+}
+
+.game-card-tag {
+  display: inline-block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+
+.game-card-tag strong {
+  color: var(--cyan);
+  font-weight: 500;
+}
+
+.game-card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.game-card-actions a {
+  flex: 1;
+  text-align: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 9px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--panel-border);
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.btn-play {
+  color: var(--bg);
+  background: var(--magenta);
+  border-color: var(--magenta) !important;
+}
+
+.btn-play:hover {
+  background: var(--amber);
+  border-color: var(--amber) !important;
+}
+
+.btn-info {
+  color: var(--cyan);
+  background: transparent;
+}
+
+.btn-info:hover {
+  border-color: var(--cyan) !important;
+  background: rgba(56, 232, 225, 0.08);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-dim);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  display: none;
+}
+
+.empty-state.visible {
+  display: block;
+}
+
+footer {
+  margin-top: 90px;
+  text-align: center;
+  color: var(--text-dim);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+</style>
+</head>
+<body>
+  <div class="page">
+
+    <header class="hero">
+      <div class="brand-eyebrow">// portail de jeux en ligne</div>
+      <h1 class="brand-title">AIGAMELAB</h1>
+      <p class="brand-sub">
+        Une sélection de jeux, chacun codé à 100&nbsp;% par une IA, à lancer
+        directement dans le navigateur. Cherchez, cliquez, jouez.
+      </p>
+
+      <div class="search-console">
+        <div class="search-console-topline">
+          <span><span class="dot"></span>terminal de recherche</span>
+          <span>aigamelab_v1</span>
+        </div>
+        <div class="search-row">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input
+            type="text"
+            id="search-input"
+            placeholder="Rechercher un jeu…"
+            autocomplete="off"
+          />
+        </div>
+        <div class="search-count" id="search-count"></div>
+      </div>
+    </header>
+
+    <div class="section-label">Tous les jeux</div>
+
+    <main class="games-grid" id="games-grid"></main>
+    <div class="empty-state" id="empty-state">Aucun jeu ne correspond à votre recherche.</div>
+
+    <footer>AIGameLab — jeux chargés depuis game.json</footer>
+  </div>
+
+<script>
+const grid = document.getElementById('games-grid');
+const emptyState = document.getElementById('empty-state');
+const searchInput = document.getElementById('search-input');
+const searchCount = document.getElementById('search-count');
+
+let allGames = [];
+
+function renderGames(games) {
+  grid.innerHTML = '';
+
+  if (games.length === 0) {
+    emptyState.classList.add('visible');
+  } else {
+    emptyState.classList.remove('visible');
+  }
+
+  games.forEach((game) => {
+    const card = document.createElement('article');
+    card.className = 'game-card';
+
+    const infoUrl = `info.html?jeu=${encodeURIComponent(game.nom)}`;
+
+    card.innerHTML = `
+      <div class="game-card-media">
+        <img src="${game.image}" alt="${game.nom}" loading="lazy" />
+      </div>
+      <div class="game-card-body">
+        <p class="game-card-name">${game.nom}</p>
+        <span class="game-card-tag">codé par <strong>${game.ia || 'IA'}</strong></span>
+        <div class="game-card-actions">
+          <a class="btn-play" href="${game.lien || '#'}" target="_blank" rel="noopener noreferrer">Jouer</a>
+          <a class="btn-info" href="${infoUrl}">En savoir plus</a>
+        </div>
+      </div>
+    `;
+
+    grid.appendChild(card);
+  });
+}
+
+function updateCount(shown, total) {
+  searchCount.innerHTML = `<strong>${shown}</strong> / ${total} jeux affichés`;
+}
+
+function filterGames(query) {
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? allGames.filter((g) => g.nom.toLowerCase().includes(q))
+    : allGames;
+  renderGames(filtered);
+  updateCount(filtered.length, allGames.length);
+}
+
+async function loadGames() {
+  try {
+    const response = await fetch('game.json');
+    if (!response.ok) throw new Error('Réponse réseau non valide');
+    allGames = await response.json();
+  } catch (err) {
+    console.error('Impossible de charger game.json :', err);
+    grid.innerHTML = `
+      <div class="empty-state visible" style="grid-column: 1 / -1;">
+        Impossible de charger game.json.<br />
+        Ouvrez ce fichier via un serveur local (ex : <code>python3 -m http.server</code>)
+        plutôt qu'en double-cliquant directement dessus. game.json doit être
+        dans le même dossier que ce fichier html.
+      </div>
+    `;
+    updateCount(0, 0);
+    return;
+  }
+
+  renderGames(allGames);
+  updateCount(allGames.length, allGames.length);
+}
+
+searchInput.addEventListener('input', (e) => filterGames(e.target.value));
+
+loadGames();
+</script>
+</body>
+</html>
