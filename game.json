@@ -1,9 +1,16 @@
 [
-    {
+{
     "nom": "Drift",
     "lien": "https://moi14212869.github.io/aigamelab/game/drift.html",
     "image": "images/drift.png",
     "description": "DRIFT — un dodger spatial minimaliste",
     "ia": "Claude Sonnet 5"
-  }
+  },
+{
+  "nom": "Dérive",
+  "lien": "https://moi14212869.github.io/aigamelab/game/derive.html",
+  "image": "images/derive.png",
+  "description": "DÉRIVE — absorbe, grandis, deviens une étoile dans le vide",
+  "ia": "Claude Sonnet 5"
+}
 ]
