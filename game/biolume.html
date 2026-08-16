@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>BIOLUME — descends dans l'abysse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Michroma&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --abyss:#05070d;
+    --trench:#0b1830;
+    --surface:#1c6e77;
+    --biolume:#5eead4;
+    --coral:#ff6b6b;
+    --plankton:#ffd166;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; height:100%; width:100%;
+    background:var(--abyss);
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+    font-family:'Manrope',sans-serif;
+  }
+  #wrap{
+    position:relative;
+    box-shadow:0 0 0 1px rgba(94,234,212,0.15), 0 0 60px rgba(94,234,212,0.08);
+    border-radius:6px;
+    overflow:hidden;
+  }
+  #game-container{ line-height:0; }
+  canvas{ display:block; }
+</style>
+</head>
+<body>
+<div id="wrap"><div id="game-container"></div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.70.0/phaser.min.js"></script>
+<script>
+const W = 480, H = 800;
+const COLORS = {
+  abyss: 0x05070d,
+  trench: 0x0b1830,
+  surface: 0x1c6e77,
+  biolume: 0x5eead4,
+  coral: 0xff6b6b,
+  plankton: 0xffd166
+};
+
+// ---------- helpers ----------
+function makeTexture(scene, key, w, h, drawFn){
+  const g = scene.make.graphics({x:0,y:0,add:false});
+  drawFn(g);
+  g.generateTexture(key, w, h);
+  g.destroy();
+}
+
+// ---------- BOOT ----------
+class Boot extends Phaser.Scene {
+  constructor(){ super('Boot'); }
+  create(){
+    // player fish
+    makeTexture(this, 'player', 46, 30, g=>{
+      g.fillStyle(0x0d3b3f, 1); g.fillEllipse(24,15,30,18);
+      g.fillStyle(COLORS.biolume, 1); g.fillEllipse(22,15,28,16);
+      g.fillTriangle(4,15, 16,6, 16,24);
+      g.fillStyle(0xffffff, 0.9); g.fillCircle(34,13,2.4);
+      g.fillStyle(COLORS.plankton, 1); g.fillCircle(10,15,3.2);
+    });
+    // pulse (sonar bolt)
+    makeTexture(this, 'pulse', 10, 18, g=>{
+      g.fillStyle(COLORS.biolume, 0.35); g.fillEllipse(5,9,10,18);
+      g.fillStyle(0xffffff, 0.95); g.fillEllipse(5,9,4,10);
+    });
+    // orb (plankton light)
+    makeTexture(this, 'orb', 18, 18, g=>{
+      g.fillStyle(COLORS.plankton, 0.25); g.fillCircle(9,9,9);
+      g.fillStyle(COLORS.plankton, 1); g.fillCircle(9,9,4.5);
+      g.fillStyle(0xffffff, 0.9); g.fillCircle(7,7,1.6);
+    });
+    // jellyfish
+    makeTexture(this, 'jelly', 34, 34, g=>{
+      g.fillStyle(COLORS.coral, 0.28); g.fillCircle(17,14,15);
+      g.fillStyle(COLORS.coral, 0.85); g.fillEllipse(17,13,22,16);
+      g.lineStyle(2, COLORS.coral, 0.8);
+      for(let i=0;i<5;i++){
+        const x = 6 + i*5.5;
+        g.beginPath(); g.moveTo(x,20); g.lineTo(x-2,32); g.strokePath();
+      }
+    });
+    // anglerfish (bigger threat)
+    makeTexture(this, 'angler', 48, 34, g=>{
+      g.fillStyle(0x3a0d1f, 1); g.fillEllipse(26,17,34,22);
+      g.fillStyle(COLORS.coral, 1); g.fillEllipse(24,17,30,18);
+      g.fillTriangle(44,17, 30,8, 30,26);
+      g.lineStyle(2, COLORS.plankton, 1);
+      g.beginPath(); g.moveTo(10,6); g.lineTo(2,2); g.strokePath();
+      g.fillStyle(COLORS.plankton, 1); g.fillCircle(2,2,3);
+      g.fillStyle(0xffffff,0.9); g.fillCircle(16,15,2);
+    });
+    // flare powerup
+    makeTexture(this, 'flare', 26, 26, g=>{
+      g.fillStyle(0xffffff, 0.25); g.fillCircle(13,13,13);
+      g.fillStyle(COLORS.biolume, 1);
+      const pts = [];
+      for(let i=0;i<8;i++){
+        const ang = i*Math.PI/4;
+        const r = i%2===0 ? 12 : 5;
+        pts.push(new Phaser.Math.Vector2(13+Math.cos(ang)*r, 13+Math.sin(ang)*r));
+      }
+      g.fillPoints(pts, true);
+    });
+    // tiny particle
+    makeTexture(this, 'spark', 8, 8, g=>{
+      g.fillStyle(0xffffff, 1); g.fillCircle(4,4,4);
+    });
+    // marine snow dot
+    makeTexture(this, 'snow', 4, 4, g=>{
+      g.fillStyle(0xbfe9e6, 0.6); g.fillCircle(2,2,2);
+    });
+
+    this.scene.start('Menu');
+  }
+}
+
+// ---------- MENU ----------
+class Menu extends Phaser.Scene {
+  constructor(){ super('Menu'); }
+  create(){
+    const bg = this.add.graphics();
+    bg.fillGradientStyle(COLORS.surface, COLORS.surface, COLORS.abyss, COLORS.abyss, 1);
+    bg.fillRect(0,0,W,H);
+
+    this.snow = this.add.particles(0,0,'snow',{
+      x:{min:0,max:W}, y:-10, lifespan:9000, speedY:{min:20,max:50},
+      alpha:{start:0.7,end:0}, quantity:1, frequency:180
+    });
+
+    this.add.text(W/2, 190, 'BIOLUME', {
+      fontFamily:'Michroma', fontSize:'44px', color:'#5eead4'
+    }).setOrigin(0.5).setShadow(0,0,'#5eead4',18,true,true);
+
+    this.add.text(W/2, 240, 'descends dans l\u2019abysse', {
+      fontFamily:'Manrope', fontSize:'15px', color:'#bfe9e6'
+    }).setOrigin(0.5);
+
+    // start orb button
+    const orb = this.add.circle(W/2, 400, 54, 0x5eead4, 0.12).setStrokeStyle(2, 0x5eead4, 0.9);
+    this.tweens.add({ targets:orb, scale:{from:1,to:1.08}, alpha:{from:0.12,to:0.22}, duration:1400, yoyo:true, repeat:-1 });
+    const label = this.add.text(W/2, 400, 'PLONGER', {
+      fontFamily:'Michroma', fontSize:'15px', color:'#eafffb'
+    }).setOrigin(0.5);
+    const hit = this.add.zone(W/2,400,140,140).setInteractive({useHandCursor:true});
+    hit.on('pointerdown', ()=> this.scene.start('Game'));
+
+    this.add.text(W/2, 520, 'DÉPLACE-TOI  ·  FLÈCHES / WASD / GLISSER', {
+      fontFamily:'Manrope', fontSize:'12px', color:'#7fb9b6'
+    }).setOrigin(0.5);
+    this.add.text(W/2, 542, 'ton sonar tire tout seul vers le haut', {
+      fontFamily:'Manrope', fontSize:'12px', color:'#7fb9b6'
+    }).setOrigin(0.5);
+
+    this.add.text(W/2, 600, 'reste dans la lumière — ta bioluminescence\nfaiblit avec le temps, les orbes la ravivent', {
+      fontFamily:'Manrope', fontSize:'11px', color:'#5b8f8c', align:'center'
+    }).setOrigin(0.5);
+  }
+}
+
+// ---------- GAME ----------
+class Game extends Phaser.Scene {
+  constructor(){ super('Game'); }
+
+  create(){
+    this.depth = 0;
+    this.score = 0;
+    this.light = 100;
+    this.speed = 90;
+    this.invuln = 0;
+    this.gameOver = false;
+
+    this.bgGfx = this.add.graphics();
+    this.drawBG();
+
+    this.snow = this.add.particles(0,0,'snow',{
+      x:{min:0,max:W}, y:-10, lifespan:{min:6000,max:9000},
+      speedY:{min:30,max:70}, alpha:{start:0.5,end:0}, quantity:1, frequency:120
+    });
+
+    this.vignette = this.add.rectangle(W/2,H/2,W,H,0x000000,0).setDepth(5);
+
+    // player
+    this.player = this.physics.add.sprite(W/2, H-140, 'player');
+    this.player.setCollideWorldBounds(true);
+    this.player.body.setSize(30,18,true);
+    this.player.setDepth(4);
+    this.player.setAngle(-90);
+
+    this.target = new Phaser.Math.Vector2(this.player.x, this.player.y);
+    this.pointerDown = false;
+
+    // groups
+    this.pulses = this.physics.add.group();
+    this.enemies = this.physics.add.group();
+    this.orbs = this.physics.add.group();
+    this.powerups = this.physics.add.group();
+
+    // input
+    this.cursors = this.input.keyboard.createCursorKeys();
+    this.keys = this.input.keyboard.addKeys('W,A,S,D');
+    this.input.on('pointerdown', p=>{ this.pointerDown=true; this.target.set(p.x,p.y); });
+    this.input.on('pointermove', p=>{ if(this.pointerDown) this.target.set(p.x,p.y); });
+    this.input.on('pointerup', ()=> this.pointerDown=false);
+
+    // auto-fire pulses
+    this.time.addEvent({ delay:260, loop:true, callback:()=>this.firePulse() });
+
+    // spawns
+    this.enemyTimer = this.time.addEvent({ delay:1400, loop:true, callback:()=>this.spawnEnemy() });
+    this.orbTimer = this.time.addEvent({ delay:900, loop:true, callback:()=>this.spawnOrb() });
+    this.powerTimer = this.time.addEvent({ delay:11000, loop:true, callback:()=>this.spawnPower() });
+
+    // collisions
+    this.physics.add.overlap(this.pulses, this.enemies, this.hitEnemy, null, this);
+    this.physics.add.overlap(this.player, this.enemies, this.hitPlayer, null, this);
+    this.physics.add.overlap(this.player, this.orbs, this.collectOrb, null, this);
+    this.physics.add.overlap(this.player, this.powerups, this.collectPower, null, this);
+
+    // HUD
+    this.depthText = this.add.text(16,14,'PROFONDEUR', {fontFamily:'Michroma',fontSize:'10px',color:'#7fb9b6'}).setDepth(10);
+    this.depthNum = this.add.text(16,28,'0 m', {fontFamily:'Michroma',fontSize:'20px',color:'#eafffb'}).setDepth(10);
+
+    this.add.text(W-16,14,'BIOLUME', {fontFamily:'Michroma',fontSize:'10px',color:'#7fb9b6'}).setOrigin(1,0).setDepth(10);
+    this.lightBarBg = this.add.rectangle(W-16,32,120,10,0x0b1830).setOrigin(1,0).setDepth(10).setStrokeStyle(1,0x2a5a58);
+    this.lightBar = this.add.rectangle(W-16,32,120,10,COLORS.biolume).setOrigin(1,0).setDepth(10);
+
+    this.scoreText = this.add.text(W/2, H-16, 'score 0', {fontFamily:'Manrope',fontSize:'13px',color:'#bfe9e6'}).setOrigin(0.5,1).setDepth(10);
+
+    this.flareActive = false;
+  }
+
+  drawBG(){
+    this.bgGfx.clear();
+    const t = Phaser.Math.Clamp(this.depth/2500, 0, 1);
+    const topC = Phaser.Display.Color.Interpolate.ColorWithColor(
+      Phaser.Display.Color.ValueToColor(COLORS.surface),
+      Phaser.Display.Color.ValueToColor(COLORS.trench), 100, t*100);
+    const botC = Phaser.Display.Color.Interpolate.ColorWithColor(
+      Phaser.Display.Color.ValueToColor(COLORS.trench),
+      Phaser.Display.Color.ValueToColor(COLORS.abyss), 100, t*100);
+    const top = Phaser.Display.Color.GetColor(topC.r,topC.g,topC.b);
+    const bot = Phaser.Display.Color.GetColor(botC.r,botC.g,botC.b);
+    this.bgGfx.fillGradientStyle(top, top, bot, bot, 1);
+    this.bgGfx.fillRect(0,0,W,H);
+  }
+
+  firePulse(){
+    if(this.gameOver) return;
+    const p = this.pulses.create(this.player.x, this.player.y-16, 'pulse');
+    p.setVelocity(0,-420);
+    p.setDepth(3);
+    this.time.delayedCall(1500, ()=>{ if(p.active) p.destroy(); });
+  }
+
+  spawnEnemy(){
+    if(this.gameOver) return;
+    const hard = Phaser.Math.Clamp(this.depth/1800, 0, 1);
+    const big = Math.random() < 0.28 + hard*0.25;
+    const x = Phaser.Math.Between(30, W-30);
+    const key = big ? 'angler' : 'jelly';
+    const e = this.enemies.create(x, -30, key);
+    e.hp = big ? 2 : 1;
+    e.big = big;
+    e.setDepth(3);
+    const vy = (big ? 70 : 55) + this.speed*0.5 + hard*60;
+    e.setVelocityY(vy);
+    e.driftPhase = Math.random()*Math.PI*2;
+    e.baseX = x;
+  }
+
+  spawnOrb(){
+    if(this.gameOver) return;
+    const x = Phaser.Math.Between(24, W-24);
+    const o = this.orbs.create(x, -20, 'orb');
+    o.setDepth(3);
+    o.setVelocityY(80 + this.speed*0.4);
+  }
+
+  spawnPower(){
+    if(this.gameOver) return;
+    const x = Phaser.Math.Between(30, W-30);
+    const p = this.powerups.create(x, -20, 'flare');
+    p.setDepth(3);
+    p.setVelocityY(90);
+    this.tweens.add({targets:p, angle:360, duration:2000, repeat:-1});
+  }
+
+  hitEnemy(pulse, enemy){
+    if(!pulse.active || !enemy.active) return;
+    pulse.destroy();
+    enemy.hp -= 1;
+    this.cameras.main.flash(40, 94,234,212);
+    if(enemy.hp<=0){
+      this.burst(enemy.x, enemy.y, enemy.big?COLORS.coral:COLORS.coral, enemy.big?16:9);
+      this.score += enemy.big ? 15 : 8;
+      enemy.destroy();
+      this.scoreText.setText('score '+this.score);
+    }
+  }
+
+  hitPlayer(player, enemy){
+    if(this.gameOver) return;
+    if(this.invuln>0) return;
+    const dmg = enemy.big ? 22 : 12;
+    this.light -= dmg;
+    this.invuln = 1000;
+    this.cameras.main.shake(160, 0.012);
+    this.burst(enemy.x, enemy.y, COLORS.coral, 14);
+    enemy.destroy();
+    this.player.setTintFill(0xff6b6b);
+    this.time.delayedCall(120, ()=> this.player.clearTint());
+  }
+
+  collectOrb(player, orb){
+    orb.destroy();
+    this.light = Math.min(100, this.light + 9);
+    this.score += 5;
+    this.burst(orb.x, orb.y, COLORS.plankton, 8);
+    this.scoreText.setText('score '+this.score);
+  }
+
+  collectPower(player, power){
+    power.destroy();
+    this.light = Math.min(100, this.light + 30);
+    this.flareActive = true;
+    this.invuln = Math.max(this.invuln, 2200);
+    this.player.setTintFill(0x5eead4);
+    this.burst(player.x, player.y, COLORS.biolume, 20);
+    this.time.delayedCall(2200, ()=>{ this.flareActive=false; this.player.clearTint(); });
+  }
+
+  burst(x,y,color,n){
+    const em = this.add.particles(x,y,'spark',{
+      lifespan:420, speed:{min:60,max:180}, scale:{start:1,end:0},
+      quantity:n, tint:color, blendMode:'ADD', emitting:false
+    });
+    em.explode(n);
+    this.time.delayedCall(500, ()=> em.destroy());
+  }
+
+  update(time, delta){
+    if(this.gameOver) return;
+    const dt = delta/1000;
+
+    // difficulty ramp
+    this.depth += this.speed*dt*0.6;
+    this.speed = 90 + Math.min(160, this.depth*0.045);
+    const targetEnemyDelay = Math.max(420, 1400 - this.depth*0.35);
+    if(this.enemyTimer.delay !== targetEnemyDelay) this.enemyTimer.reset({delay:targetEnemyDelay, loop:true, callback:()=>this.spawnEnemy()});
+
+    // light drain
+    const drain = 3.2 + Math.min(4, this.depth*0.0012);
+    this.light -= drain*dt;
+    if(this.light <= 0){ this.light = 0; this.endGame(); }
+
+    if(this.invuln>0) this.invuln -= delta;
+    this.player.setAlpha(this.invuln>0 ? (Math.sin(time/40)*0.3+0.7) : 1);
+
+    // movement
+    const speed = 260;
+    let vx=0, vy=0;
+    if(this.cursors.left.isDown || this.keys.A.isDown) vx=-1;
+    if(this.cursors.right.isDown || this.keys.D.isDown) vx=1;
+    if(this.cursors.up.isDown || this.keys.W.isDown) vy=-1;
+    if(this.cursors.down.isDown || this.keys.S.isDown) vy=1;
+
+    if(vx!==0 || vy!==0){
+      const v = new Phaser.Math.Vector2(vx,vy).normalize().scale(speed);
+      this.player.setVelocity(v.x, v.y);
+    } else if(this.pointerDown){
+      const dx = this.target.x - this.player.x, dy = this.target.y - this.player.y;
+      const dist = Math.hypot(dx,dy);
+      if(dist>4){
+        const v = new Phaser.Math.Vector2(dx,dy).normalize().scale(Math.min(speed, dist*8));
+        this.player.setVelocity(v.x,v.y);
+      } else this.player.setVelocity(0,0);
+    } else {
+      this.player.setVelocity(0,0);
+    }
+
+    if(this.player.body.velocity.x < -10) this.player.setAngle(-160);
+    else if(this.player.body.velocity.x > 10) this.player.setAngle(-20);
+    else this.player.setAngle(-90);
+
+    // enemy drift + cleanup
+    this.enemies.children.each(e=>{
+      if(!e.active) return;
+      e.driftPhase += dt*2;
+      e.x = Phaser.Math.Clamp(e.baseX + Math.sin(e.driftPhase)*30, 20, W-20);
+      if(e.y > H+40) e.destroy();
+    });
+    this.orbs.children.each(o=>{ if(o.active && o.y>H+30) o.destroy(); });
+    this.powerups.children.each(p=>{ if(p.active && p.y>H+30) p.destroy(); });
+    this.pulses.children.each(p=>{ if(p.active && p.y < -30) p.destroy(); });
+
+    // bg + vignette update
+    if(Math.floor(this.depth)%5===0) this.drawBG();
+    const darkness = Phaser.Math.Clamp(this.depth/3000, 0, 0.55);
+    this.vignette.setFillStyle(0x000000, darkness);
+
+    // HUD
+    this.depthNum.setText(Math.floor(this.depth)+' m');
+    this.lightBar.width = Math.max(0, 120*(this.light/100));
+    const lc = this.light>35 ? COLORS.biolume : COLORS.coral;
+    this.lightBar.setFillStyle(lc);
+  }
+
+  endGame(){
+    this.gameOver = true;
+    this.physics.pause();
+    this.enemyTimer.remove(); this.orbTimer.remove(); this.powerTimer.remove();
+    this.time.delayedCall(300, ()=>{
+      this.scene.start('Over', {score:this.score, depth:Math.floor(this.depth)});
+    });
+  }
+}
+
+// ---------- GAME OVER ----------
+class Over extends Phaser.Scene {
+  constructor(){ super('Over'); }
+  init(data){ this.finalScore = data.score||0; this.finalDepth = data.depth||0; }
+  create(){
+    const bg = this.add.graphics();
+    bg.fillGradientStyle(COLORS.trench, COLORS.trench, COLORS.abyss, COLORS.abyss, 1);
+    bg.fillRect(0,0,W,H);
+
+    this.add.text(W/2,220,'LA LUMIÈRE S\u2019ÉTEINT', {
+      fontFamily:'Michroma', fontSize:'21px', color:'#ff6b6b', align:'center', wordWrap:{width:380}
+    }).setOrigin(0.5).setShadow(0,0,'#ff6b6b',14,true,true);
+
+    const total = this.finalDepth + this.finalScore;
+    this.add.text(W/2,320,'profondeur atteinte', {fontFamily:'Manrope',fontSize:'13px',color:'#7fb9b6'}).setOrigin(0.5);
+    this.add.text(W/2,346,this.finalDepth+' m', {fontFamily:'Michroma',fontSize:'26px',color:'#eafffb'}).setOrigin(0.5);
+
+    this.add.text(W/2,400,'score final', {fontFamily:'Manrope',fontSize:'13px',color:'#7fb9b6'}).setOrigin(0.5);
+    this.add.text(W/2,426,String(total), {fontFamily:'Michroma',fontSize:'26px',color:'#ffd166'}).setOrigin(0.5);
+
+    const orb = this.add.circle(W/2, 560, 50, 0x5eead4, 0.12).setStrokeStyle(2, 0x5eead4, 0.9);
+    this.tweens.add({ targets:orb, scale:{from:1,to:1.08}, alpha:{from:0.12,to:0.22}, duration:1400, yoyo:true, repeat:-1 });
+    this.add.text(W/2,560,'REPLONGER', {fontFamily:'Michroma',fontSize:'14px',color:'#eafffb'}).setOrigin(0.5);
+    const hit = this.add.zone(W/2,560,140,140).setInteractive({useHandCursor:true});
+    hit.on('pointerdown', ()=> this.scene.start('Game'));
+  }
+}
+
+const config = {
+  type: Phaser.AUTO,
+  width: W, height: H,
+  parent: 'game-container',
+  backgroundColor: '#05070d',
+  physics: { default: 'arcade', arcade: { gravity:{y:0}, debug:false } },
+  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+  scene: [Boot, Menu, Game, Over]
+};
+
+new Phaser.Game(config);
+</script>
+</body>
+</html>
